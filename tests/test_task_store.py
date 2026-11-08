@@ -29,3 +29,11 @@ def test_timeout_uses_updated_at(tmp_path: Path):
     st.set_status("t1", "running")
     row = st.get("t1")
     assert row["updated_at"] > 0
+
+def test_reopen_persists(tmp_path: Path):
+    st = TaskStore(tmp_path / "t.db")
+    st.init()
+    st.create("t1", "p1", "m", {})
+    st2 = TaskStore(tmp_path / "t.db")   # 模拟网关重启后重开
+    st2.init()
+    assert st2.get("t1") is not None and st2.get("t1")["status"] == "queued"
