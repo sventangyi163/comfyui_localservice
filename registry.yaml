@@ -1,0 +1,31 @@
+- name: ltx-2.3-local
+  template: workflows/ltx-2.3-i2v.json
+  available: true
+  duration_range: [3, 8]
+  fps: 25
+  resolutions: {480p: 480, 540p: 540, 720p: 720}
+  dims_multiple: 32
+  aspects: ["9:16", "16:9", "1:1"]
+  timeout_s: 1800
+  inject:
+    image:     [{node: "269", field: "image"}]
+    prompt:    [{node: "320.319", field: "text"}]
+    width:     [{node: "320.290", field: "width"}, {node: "320.295", field: "width"}]
+    height:    [{node: "320.290", field: "height"}, {node: "320.295", field: "height"}]
+    length:    [{node: "320.295", field: "length"}, {node: "320.305", field: "length"}]
+    fps:       [{node: "320.305", field: "fps"}, {node: "320.310", field: "frame_rate"}]
+    short_side: [{node: "320.299", field: "value"}]
+    seconds:   [{node: "320.301", field: "value"}]
+
+- name: minimax-h3-local
+  template: workflows/minimax-h3-i2v.json
+  available: false          # Task 9 真机探测后回写
+  duration_range: [3, 8]
+  fps: 25
+  resolutions: {480p: 480, 540p: 540, 720p: 720}
+  dims_multiple: 32
+  aspects: ["9:16", "16:9", "1:1"]
+  timeout_s: 1800
+  inject:
+    image:  [{node: "114", field: "image"}]
+    prompt: []   # Task 9 转换后按实际节点 id 回填（依赖转换输出，属数据修正）
