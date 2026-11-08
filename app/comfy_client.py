@@ -32,7 +32,7 @@ def parse_history(entry: dict) -> tuple[str, list[dict], str]:
         return "succeeded", vids, ""
     if status.get("completed"):
         return "failed", [], "completed 但无视频输出"
-    return "running", [], []
+    return "running", [], ""
 
 class ComfyClient:
     def __init__(self, base_url: str, http: httpx.AsyncClient | None = None):
