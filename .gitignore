@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+data/
+files/
+cache/
+smoke_t_*.mp4
+.pytest_cache/
