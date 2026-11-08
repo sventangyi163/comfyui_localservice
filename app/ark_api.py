@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from PIL import Image
 
 from app.comfy_client import ComfySubmitError, parse_history
+from app.config import ROOT
 from app.registry import load_registry, RegistryError
 from app.templating import build_graph, dims_for, frames_for
 
@@ -29,14 +30,9 @@ def _new_task_id() -> str:
 def _registry(request: Request):
     return load_registry(request.app.state.registry_path)
 
-def _template_path(app, entry) -> Path:
-    """registry 的 template 为项目根相对路径（如 workflows/ltx-2.3-i2v.json），
-    workflows_dir 本身已是 <root>/workflows，直拼会得到 <root>/workflows/workflows/…；
-    故先按根相对解析，不存在时退回 workflows_dir 直拼（裸文件名写法）。"""
-    direct = Path(app.state.workflows_dir, entry.template)
-    if direct.exists():
-        return direct
-    return Path(app.state.workflows_dir).parent / entry.template
+def _template_path(entry) -> Path:
+    """registry.template 记录的是仓库相对路径（如 workflows/ltx-2.3-i2v.json）。"""
+    return ROOT / entry.template
 
 @router.post("/contents/generations/tasks")
 async def submit(body: ArkSubmitBody, request: Request):
@@ -57,7 +53,7 @@ async def submit(body: ArkSubmitBody, request: Request):
         w, h = Image.open(io.BytesIO(raw)).size
     except Exception:
         raise HTTPException(400, detail="首帧图解码失败（需 data:image/...;base64）")
-    template = _template_path(app, entry)
+    template = _template_path(entry)
     if not template.exists():
         raise HTTPException(500, detail=f"模板缺失: {entry.template}")
     tpl_json = json.loads(template.read_text(encoding="utf-8"))
@@ -130,7 +126,7 @@ async def files(fname: str, request: Request):
 async def models(request: Request):
     reg = _registry(request)
     ms = [{"name": e.name, "kind": "i2v",
-           "available": e.available and _template_path(request.app, e).exists(),   # ⚠ 修正案：模板存在性实时校验
+           "available": e.available and _template_path(e).exists(),   # ⚠ 修正案：模板存在性实时校验
            "duration_range": e.duration_range,
            "resolutions": list(e.resolutions), "aspects": e.aspects}
           for e in reg.entries.values()]
