@@ -22,7 +22,8 @@
 
 - name: minimax-h3-local
   template: workflows/minimax-h3-i2v.json
-  available: false          # Task 9 真机探测后回写
+  # 本机缺 minimax_h3_fl2va_pruned_int8_convrot.safetensors（现有 qwen3vl nvfp4 为另一发行版）；补齐文件并桌面版跑通后再启用
+  available: false
   duration_range: [3, 8]
   fps: 25
   resolutions: {480p: 480, 540p: 544, 720p: 736}  # 短边目标像素（已按 dims_multiple=32 对齐；720p 实际 736）
@@ -31,4 +32,5 @@
   timeout_s: 1800
   inject:
     image:  [{node: "114", field: "image"}]
-    prompt: []   # Task 9 转换后按实际节点 id 回填（依赖转换输出，属数据修正）
+    # 转换后模板没有独立 PrimitiveStringMultiline，提示词直挂在 105.104(MiniMaxH3ImageToVideo).prompt
+    prompt: [{node: "105.104", field: "prompt"}]

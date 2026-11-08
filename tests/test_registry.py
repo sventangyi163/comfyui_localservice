@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import pytest
 from app.registry import load_registry, RegistryError
 
@@ -42,3 +43,10 @@ def test_real_registry_smoke():
     assert len(reg.entries) == 2
     assert reg.get_entry("ltx-2.3-local").available is True
     assert reg.get_entry("minimax-h3-local").available is False
+    # minimax prompt 注入点回填守卫：注入节点/字段必须真实存在于已提交模板
+    wf = json.loads((ROOT / "workflows" / "minimax-h3-i2v.json").read_text(encoding="utf-8"))
+    inj = reg.get_entry("minimax-h3-local").inject["prompt"]
+    assert inj, "minimax-h3-local 的 prompt 注入点未回填"
+    for p in inj:
+        assert p.node in wf, f"注入节点 {p.node} 不在模板中"
+        assert p.field in wf[p.node]["inputs"], f"{p.node} 无字段 {p.field}"
