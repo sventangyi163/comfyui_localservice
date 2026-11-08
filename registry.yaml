@@ -10,10 +10,10 @@
   inject:
     image:     [{node: "269", field: "image"}]
     prompt:    [{node: "320.319", field: "text"}]
-    width:     [{node: "320.290", field: "width"}, {node: "320.295", field: "width"}]
-    height:    [{node: "320.290", field: "height"}, {node: "320.295", field: "height"}]
+    width:     [{node: "320.290", field: "resize_type.width"}, {node: "320.295", field: "width"}]
+    height:    [{node: "320.290", field: "resize_type.height"}, {node: "320.295", field: "height"}]
     length:    [{node: "320.295", field: "length"}, {node: "320.305", field: "length"}]
-    fps:       [{node: "320.305", field: "fps"}, {node: "320.310", field: "frame_rate"}]
+    fps:       [{node: "320.305", field: "frame_rate"}, {node: "320.310", field: "fps"}]
     short_side: [{node: "320.299", field: "value"}]
     seconds:   [{node: "320.301", field: "value"}]
 
