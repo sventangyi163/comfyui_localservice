@@ -71,6 +71,10 @@ def _align_widgets(cls: str, oi: dict, wv: list) -> dict:
                 if not ok:
                     return
                 out[full] = v
+                if opts.get("control_after_generate"):
+                    _, ok = take()  # 控制 widget（fixed/randomize…）额外占一个 wv 槽
+                    if not ok:
+                        return
 
     walk(_entries(oi.get(cls, {}).get("input", {})), "")
     return out
@@ -184,6 +188,8 @@ def convert(ui: dict, oi: dict) -> dict:
                 if not il or il["origin_id"] != sg["inputNode"]["id"]:
                     continue
                 tgt = inner_nodes.get(il["target_id"])
+                if tgt is None or tgt.get("type") in SKIP_TYPES:
+                    continue
                 field = _field_at(tgt, il["target_slot"], oi)
                 if field is not None:
                     graph[f"{prefix}.{il['target_id']}"]["inputs"][field] = wv[k]
@@ -195,6 +201,8 @@ def convert(ui: dict, oi: dict) -> dict:
             ol = outer_links.get(e["link"])
             if ol is None:
                 continue
+            if outer_nodes.get(ol[1], {}).get("type") in sgs:
+                continue  # 源是另一个子图实例：不产生悬空引用
             si = next((i for i, sgin in enumerate(sg.get("inputs", []))
                        if sgin.get("name") in (e.get("name"), (e.get("widget") or {}).get("name"))), None)
             if si is None:
