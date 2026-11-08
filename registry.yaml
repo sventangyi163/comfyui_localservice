@@ -3,7 +3,7 @@
   available: true
   duration_range: [3, 8]
   fps: 25
-  resolutions: {480p: 480, 540p: 540, 720p: 720}
+  resolutions: {480p: 480, 540p: 544, 720p: 736}  # 短边目标像素（已按 dims_multiple=32 对齐；720p 实际 736）
   dims_multiple: 32
   aspects: ["9:16", "16:9", "1:1"]
   timeout_s: 1800
@@ -22,7 +22,7 @@
   available: false          # Task 9 真机探测后回写
   duration_range: [3, 8]
   fps: 25
-  resolutions: {480p: 480, 540p: 540, 720p: 720}
+  resolutions: {480p: 480, 540p: 544, 720p: 736}  # 短边目标像素（已按 dims_multiple=32 对齐；720p 实际 736）
   dims_multiple: 32
   aspects: ["9:16", "16:9", "1:1"]
   timeout_s: 1800

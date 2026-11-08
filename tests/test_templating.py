@@ -17,9 +17,13 @@ def entry():
     })
 
 def test_dims_16_9_and_9_16():
-    assert dims_for((1920, 1080), 720, 32) == (1280, 720)
-    assert dims_for((1080, 1920), 720, 32) == (720, 1280)
-    assert dims_for((1000, 1000), 540, 32) == (544, 544)      # 对齐到 32 倍数（短边向上取）
+    assert dims_for((1920, 1080), 736, 32) == (1312, 736)   # 720p 档（对齐后 736）
+    assert dims_for((1080, 1920), 736, 32) == (736, 1312)
+    assert dims_for((1000, 1000), 544, 32) == (544, 544)
+
+def test_dims_aligns_unaligned_input():
+    assert dims_for((1000, 1000), 540, 32) == (544, 544)    # 无论传入值，一律向上对齐
+    assert dims_for((1920, 1080), 480, 32) == (864, 480)
 
 def test_frames():
     assert frames_for(5, 25) == 126   # duration*fps+1
