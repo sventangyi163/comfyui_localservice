@@ -14,7 +14,6 @@ async def lifespan(app: FastAPI):
     s.data_dir.mkdir(exist_ok=True); s.files_dir.mkdir(exist_ok=True)
     app.state.settings = s
     app.state.registry_path = s.registry_path
-    app.state.workflows_dir = s.workflows_dir
     app.state.files_dir = s.files_dir
     app.state.public_base = f"http://{s.host}:{s.port}"
     app.state.store = TaskStore(s.data_dir / "tasks.db"); app.state.store.init()

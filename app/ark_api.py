@@ -2,6 +2,7 @@ from __future__ import annotations
 import base64, datetime, io, json, time
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from PIL import Image
 
@@ -62,10 +63,16 @@ async def submit(body: ArkSubmitBody, request: Request):
     comfy = app.state.comfy
     try:
         name = await comfy.upload_image(raw, tid + "_first.png")
+    except Exception as e:
+        raise HTTPException(503, detail=f"ComfyUI 不可达: {e}")
+    try:
         graph = build_graph(entry, tpl_json, image_name=name, prompt=prompt,
                             width=gw, height=gh,
                             length=frames_for(duration, entry.fps), fps=entry.fps,
                             short_side=short_side, seconds=duration)   # ⚠ 修正案：补传两参数
+    except Exception as e:
+        raise HTTPException(500, detail=f"模板注入失败（registry inject 与模板不匹配?）: {e}")
+    try:
         pid = await comfy.queue_prompt(graph)
     except ComfySubmitError as e:
         raise HTTPException(400, detail=f"ComfyUI 拒绝: {e}")
@@ -82,8 +89,15 @@ async def poll(task_id: str, request: Request):
     row = app.state.store.get(task_id)
     if row is None:
         raise HTTPException(404)
-    entry = _registry(request).get_entry(row["model"])
-    if row["status"] in ("queued", "running"):
+    entry = None
+    try:
+        entry = _registry(request).get_entry(row["model"])
+    except RegistryError:
+        pass    # 模型被移除：仍可轮询/超时，用默认超时
+    timeout_s = entry.timeout_s if entry else app.state.settings.default_timeout_s
+    if row["status"] in ("queued", "running") and time.time() - row["created_at"] > timeout_s:
+        app.state.store.set_status(task_id, "failed", error="timeout")
+    elif row["status"] in ("queued", "running"):
         try:
             hist = await app.state.comfy.history(row["prompt_id"])
             st, vids, err = parse_history(hist)
@@ -96,11 +110,8 @@ async def poll(task_id: str, request: Request):
                 app.state.store.set_status(task_id, "succeeded", video_file=str(dest))
             elif st == "failed":
                 app.state.store.set_status(task_id, "failed", error=err)
-            elif time.time() - row["created_at"] > entry.timeout_s:
-                app.state.store.set_status(task_id, "failed", error="timeout")
-            else:
-                if st == "running" and row["status"] != "running":
-                    app.state.store.set_status(task_id, "running")
+            elif st == "running" and row["status"] != "running":
+                app.state.store.set_status(task_id, "running")
         except Exception:
             pass    # 瞬时不可达：返回缓存状态
     row = app.state.store.get(task_id)
@@ -119,7 +130,6 @@ async def files(fname: str, request: Request):
     p = Path(request.app.state.files_dir, fname)
     if not p.exists():
         raise HTTPException(404)
-    from fastapi.responses import FileResponse
     return FileResponse(p, media_type="video/mp4")
 
 @router.get("/models")

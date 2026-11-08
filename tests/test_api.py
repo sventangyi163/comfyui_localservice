@@ -11,15 +11,19 @@ PNG_1PX = ("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAA
 def client(tmp_path):
     fake = FakeComfy()
     from app.task_store import TaskStore
+    from app.config import get_settings
     st = TaskStore(tmp_path / "t.db"); st.init()
     app.state.store = st
     app.state.comfy = fake
     app.state.files_dir = tmp_path / "files"; app.state.files_dir.mkdir()
-    app.state.workflows_dir = Path(__file__).resolve().parents[1] / "workflows"
     app.state.registry_path = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "registry_test.yaml"
     app.state.public_base = "http://127.0.0.1:8300"
+    app.state.settings = get_settings()
     with TestClient(app) as c:
         yield c, fake
+    for k in ("store", "comfy", "files_dir", "registry_path", "public_base", "settings"):
+        if hasattr(app.state, k):
+            delattr(app.state, k)
 
 def test_models(client):
     c, _ = client
@@ -76,3 +80,39 @@ def test_timeout_marks_failed(client):
     app.state.store._conn.commit()
     r2 = c.get(f"/contents/generations/tasks/{tid}")
     assert r2.json()["status"] == "failed" and "timeout" in r2.json()["error"]["message"]
+
+def test_timeout_while_comfy_down(client):
+    c, fake = client
+    r = c.post("/contents/generations/tasks", json={
+        "model": "ltx-2.3-local",
+        "content": [{"type": "image_url", "image_url": {"url": PNG_1PX}},
+                    {"type": "text", "text": "t"}],
+        "duration": 5, "resolution": "720p"})
+    tid = r.json()["id"]
+    fake.down = True
+    app.state.store._conn.execute("UPDATE tasks SET created_at=0 WHERE id=?", (tid,))
+    app.state.store._conn.commit()
+    r2 = c.get(f"/contents/generations/tasks/{tid}")
+    assert r2.status_code == 200
+    assert r2.json()["status"] == "failed" and "timeout" in r2.json()["error"]["message"]
+
+def test_files_traversal_404(client):
+    c, _ = client
+    assert c.get("/files/..%5C..%5Cwin.ini").status_code == 404
+    assert c.get("/files/evil.mp4").status_code == 404
+
+def test_poll_model_removed(client, tmp_path):
+    c, _ = client
+    r = c.post("/contents/generations/tasks", json={
+        "model": "ltx-2.3-local",
+        "content": [{"type": "image_url", "image_url": {"url": PNG_1PX}},
+                    {"type": "text", "text": "t"}],
+        "duration": 5, "resolution": "720p"})
+    tid = r.json()["id"]
+    other = tmp_path / "registry_other.yaml"
+    other.write_text("- name: other-model\n  template: workflows/ltx-2.3-i2v.json\n",
+                     encoding="utf-8")
+    app.state.registry_path = other
+    r2 = c.get(f"/contents/generations/tasks/{tid}")
+    assert r2.status_code == 200
+    assert r2.json()["status"] in ("queued", "running")
