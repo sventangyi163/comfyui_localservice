@@ -116,3 +116,16 @@ def test_poll_model_removed(client, tmp_path):
     r2 = c.get(f"/contents/generations/tasks/{tid}")
     assert r2.status_code == 200
     assert r2.json()["status"] in ("queued", "running")
+
+def test_task_ids_unique_same_second(client):
+    c, _ = client
+    ids = set()
+    for _ in range(5):
+        r = c.post("/contents/generations/tasks", json={
+            "model": "ltx-2.3-local",
+            "content": [{"type": "image_url", "image_url": {"url": PNG_1PX}},
+                        {"type": "text", "text": "t"}],
+            "duration": 5, "resolution": "720p"})
+        assert r.status_code == 200
+        ids.add(r.json()["id"])
+    assert len(ids) == 5

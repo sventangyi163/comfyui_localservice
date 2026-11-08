@@ -1,5 +1,5 @@
 from __future__ import annotations
-import base64, datetime, io, json, time
+import base64, datetime, io, json, secrets, time
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
@@ -25,8 +25,7 @@ class ArkSubmitBody(BaseModel):
     resolution: str = "720p"
 
 def _new_task_id() -> str:
-    return datetime.datetime.now().strftime("t_%Y%m%d_%H%M%S_") + \
-        base64.b32encode(int(time.time() * 1000).to_bytes(6, "big")).decode()[:4].lower()
+    return datetime.datetime.now().strftime("t_%Y%m%d_%H%M%S_") + secrets.token_hex(4)
 
 def _registry(request: Request):
     return load_registry(request.app.state.registry_path)
