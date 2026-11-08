@@ -1,4 +1,8 @@
-from app.registry import ModelEntry, InjectPoint
+import json
+from pathlib import Path
+
+from app.config import ROOT
+from app.registry import ModelEntry, InjectPoint, load_registry
 from app.templating import dims_for, frames_for, build_graph
 
 TPL = {  # 迷你模板：3 节点，模拟注入
@@ -37,3 +41,30 @@ def test_build_graph_no_mutation_and_injection():
     assert g["320.319"]["inputs"]["height"] == 1280
     assert g["320.295"]["inputs"]["length"] == 126
     assert TPL["269"]["inputs"]["image"] == "old.png"          # 原模板不被改
+
+
+def test_prompt_inject_reaches_template_node():
+    """回归守卫（评审发现的 bug 类）：用真实 registry.yaml + 真实模板验证
+    1) prompt 标记串确实落到模板提示词节点 320.319 的 value 字段；
+    2) 每个模型的全部注入点（node+field）在模板中真实存在——
+       ComfyUI 对未知输入名静默丢弃，注入字段名写错 = 注入无效但不报错。"""
+    reg = load_registry(ROOT / "registry.yaml")
+    e = reg["ltx-2.3-local"]
+    tpl = json.loads((ROOT / e.template).read_text(encoding="utf-8"))
+    g = build_graph(e, tpl, image_name="x.png", prompt="UNIQUE_MARKER_7f3a",
+                    width=448, height=832, length=76, fps=25,
+                    short_side=480, seconds=3)
+    assert g["320.319"]["inputs"]["value"] == "UNIQUE_MARKER_7f3a"   # 原为 field:"text" 被静默丢弃
+    assert g["320.305"]["inputs"]["frames_number"] == 76             # 原为 field:"length" 同类问题
+    for name in reg.entries:
+        entry = reg.entries[name]
+        path = ROOT / entry.template
+        if not path.exists():
+            continue
+        wf = json.loads(path.read_text(encoding="utf-8"))
+        for param, points in entry.inject.items():
+            for p in points:
+                assert p.node in wf, f"{name}.{param}: 节点 {p.node} 不在模板 {entry.template}"
+                assert p.field in wf[p.node]["inputs"], (
+                    f"{name}.{param}: 字段 {p.field} 不在 {entry.template} 节点 {p.node} "
+                    f"的输入 {list(wf[p.node]['inputs'])} 中（ComfyUI 会静默丢弃未知输入名）")

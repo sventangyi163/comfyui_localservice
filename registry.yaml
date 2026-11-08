@@ -9,13 +9,17 @@
   timeout_s: 1800
   inject:
     image:     [{node: "269", field: "image"}]
-    prompt:    [{node: "320.319", field: "text"}]
+    # prompt 链：320.319(PrimitiveStringMultiline).value → 320.327 switch(false) → 320.303 CLIPTextEncode.text
+    # 字段必须是 value（非 text）——ComfyUI 对未知输入名静默丢弃，注入不生效
+    prompt:    [{node: "320.319", field: "value"}]
     # 两段式模板：320.312(宽)/320.299(高) 是唯一尺寸源 → a/2(320.292/294) → 320.295 半分辨率一段
     # → LTXVLatentUpsampler ×2 → 全分辨率二段出片。宽高必须注入原语 320.312/320.299
     # （同时给 320.290 图像重排字段），320.295 保持 a/2 链接；否则两段尺寸不一致或输出 2× 目标。
     width:     [{node: "320.312", field: "value"}, {node: "320.290", field: "resize_type.width"}]
     height:    [{node: "320.299", field: "value"}, {node: "320.290", field: "resize_type.height"}]
-    length:    [{node: "320.295", field: "length"}, {node: "320.305", field: "length"}]
+    # 320.305(LTXVEmptyLatentAudio) 的帧数字段名是 frames_number（原误写 length 被静默丢弃；
+    # 保留该点：音频 latent 帧数显式跟随注入值，不再依赖 320.323 的 a*b+1 偶然同值）
+    length:    [{node: "320.295", field: "length"}, {node: "320.305", field: "frames_number"}]
     fps:       [{node: "320.305", field: "frame_rate"}, {node: "320.310", field: "fps"}]
     short_side: []   # 320.299 已由 height 直接注入（它实为“resize 高度”原语，非短边语义）
     seconds:   [{node: "320.301", field: "value"}]
