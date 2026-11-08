@@ -25,6 +25,18 @@ def test_validate_duration():
     with pytest.raises(RegistryError):
         reg.get_entry("ltx-2.3-local").validate(duration=5, resolution="1080p")
 
+def test_unknown_inject_param_rejected(tmp_path):
+    p = tmp_path / "bad_registry.yaml"
+    p.write_text(
+        "- name: bad-model\n"
+        "  template: workflows/bad.json\n"
+        "  inject:\n"
+        '    foo: [{node: "1", field: "x"}]\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(RegistryError, match="foo"):
+        load_registry(p)
+
 def test_real_registry_smoke():
     reg = load_registry(ROOT / "registry.yaml")
     assert len(reg.entries) == 2

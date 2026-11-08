@@ -8,6 +8,10 @@ class RegistryError(ValueError):
     pass
 
 
+KNOWN_INJECT_PARAMS = {"image", "prompt", "width", "height", "length", "fps",
+                       "short_side", "seconds"}
+
+
 @dataclass
 class InjectPoint:
     node: str
@@ -52,7 +56,11 @@ class Registry:
 def load_registry(path: Path) -> Registry:
     entries: dict[str, ModelEntry] = {}
     for raw in yaml.safe_load(Path(path).read_text(encoding="utf-8")) or []:
-        inj = {k: [InjectPoint(**p) for p in v] for k, v in (raw.get("inject") or {}).items()}
+        inj = {}
+        for k, v in (raw.get("inject") or {}).items():
+            if k not in KNOWN_INJECT_PARAMS:
+                raise RegistryError(f"未知 inject 参数: {k}（模型 {raw['name']}）")
+            inj[k] = [InjectPoint(**p) for p in v]
         e = ModelEntry(name=raw["name"], template=raw["template"],
                        available=raw.get("available", True),
                        duration_range=raw.get("duration_range", [3, 8]),
