@@ -10,14 +10,14 @@
   inject:
     image:     [{node: "269", field: "image"}]
     prompt:    [{node: "320.319", field: "text"}]
-    # 320.295(EmptyLTXVLatentVideo) 的 width/height 保持模板 a/2 链接（320.292/320.294）：
-    # 模板是两段式（半分辨率生成 → LTXVLatentUpsampler ×2 → 全分辨率精修），
-    # 若把最终宽高直接注入 320.295，两段都在目标分辨率，经 ×2 上采样输出会变成 2× 目标。
-    width:     [{node: "320.290", field: "resize_type.width"}]
-    height:    [{node: "320.290", field: "resize_type.height"}]
+    # 两段式模板：320.312(宽)/320.299(高) 是唯一尺寸源 → a/2(320.292/294) → 320.295 半分辨率一段
+    # → LTXVLatentUpsampler ×2 → 全分辨率二段出片。宽高必须注入原语 320.312/320.299
+    # （同时给 320.290 图像重排字段），320.295 保持 a/2 链接；否则两段尺寸不一致或输出 2× 目标。
+    width:     [{node: "320.312", field: "value"}, {node: "320.290", field: "resize_type.width"}]
+    height:    [{node: "320.299", field: "value"}, {node: "320.290", field: "resize_type.height"}]
     length:    [{node: "320.295", field: "length"}, {node: "320.305", field: "length"}]
     fps:       [{node: "320.305", field: "frame_rate"}, {node: "320.310", field: "fps"}]
-    short_side: [{node: "320.299", field: "value"}]
+    short_side: []   # 320.299 已由 height 直接注入（它实为“resize 高度”原语，非短边语义）
     seconds:   [{node: "320.301", field: "value"}]
 
 - name: minimax-h3-local
