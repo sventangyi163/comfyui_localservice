@@ -57,6 +57,8 @@ class ComfyClient:
         if r.status_code != 200:
             try:
                 d = r.json()
+                if not isinstance(d, dict):
+                    raise ComfySubmitError(f"HTTP {r.status_code}: {r.text[:300]}")
                 raise ComfySubmitError(str(d.get("error"))[:300], d.get("node_errors"))
             except ValueError:
                 raise ComfySubmitError(f"HTTP {r.status_code}: {r.text[:300]}")

@@ -37,3 +37,12 @@ async def test_queue_reject():
         c = ComfyClient("http://x", http)
         with pytest.raises(ComfySubmitError):
             await c.queue_prompt({})
+
+@pytest.mark.asyncio
+async def test_queue_non_dict_json():
+    def handler(request):
+        return httpx.Response(502, json="upstream broke")
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        c = ComfyClient("http://x", http)
+        with pytest.raises(ComfySubmitError, match="502"):
+            await c.queue_prompt({})
