@@ -10,8 +10,11 @@
   inject:
     image:     [{node: "269", field: "image"}]
     prompt:    [{node: "320.319", field: "text"}]
-    width:     [{node: "320.290", field: "resize_type.width"}, {node: "320.295", field: "width"}]
-    height:    [{node: "320.290", field: "resize_type.height"}, {node: "320.295", field: "height"}]
+    # 320.295(EmptyLTXVLatentVideo) 的 width/height 保持模板 a/2 链接（320.292/320.294）：
+    # 模板是两段式（半分辨率生成 → LTXVLatentUpsampler ×2 → 全分辨率精修），
+    # 若把最终宽高直接注入 320.295，两段都在目标分辨率，经 ×2 上采样输出会变成 2× 目标。
+    width:     [{node: "320.290", field: "resize_type.width"}]
+    height:    [{node: "320.290", field: "resize_type.height"}]
     length:    [{node: "320.295", field: "length"}, {node: "320.305", field: "length"}]
     fps:       [{node: "320.305", field: "frame_rate"}, {node: "320.310", field: "fps"}]
     short_side: [{node: "320.299", field: "value"}]
