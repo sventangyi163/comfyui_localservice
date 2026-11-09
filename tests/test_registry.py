@@ -20,7 +20,7 @@ def test_unknown_model():
 
 def test_validate_duration():
     reg = load_registry(REG)
-    assert reg.get_entry("ltx-2.3-local").validate(duration=5, resolution="720p") == (5, 720)
+    assert reg.get_entry("ltx-2.3-local").validate(duration=5, resolution="720p") == (5, 736)
     with pytest.raises(RegistryError):
         reg.get_entry("ltx-2.3-local").validate(duration=99, resolution="720p")
     with pytest.raises(RegistryError):

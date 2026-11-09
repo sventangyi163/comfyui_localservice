@@ -68,7 +68,7 @@ async def submit(body: ArkSubmitBody, request: Request):
         graph = build_graph(entry, tpl_json, image_name=name, prompt=prompt,
                             width=gw, height=gh,
                             length=frames_for(duration, entry.fps), fps=entry.fps,
-                            short_side=short_side, seconds=duration)   # ⚠ 修正案：补传两参数
+                            short_side=short_side, seconds=duration)
     except Exception as e:
         raise HTTPException(500, detail=f"模板注入失败（registry inject 与模板不匹配?）: {e}")
     try:
@@ -135,7 +135,7 @@ async def files(fname: str, request: Request):
 async def models(request: Request):
     reg = _registry(request)
     ms = [{"name": e.name, "kind": "i2v",
-           "available": e.available and _template_path(e).exists(),   # ⚠ 修正案：模板存在性实时校验
+           "available": e.available and _template_path(e).exists(),
            "duration_range": e.duration_range,
            "resolutions": list(e.resolutions), "aspects": e.aspects}
           for e in reg.entries.values()]
